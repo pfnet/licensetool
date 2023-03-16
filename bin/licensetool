@@ -1,0 +1,97 @@
+#!/usr/bin/env node
+
+const fs = require("fs");
+const licenseChecker = require("license-checker-rseidelsohn");
+
+function strcmp(s1, s2) {
+  if (s1 < s2) {
+    return -1;
+  }
+  if (s1 === s2) {
+    return 0;
+  }
+  return 1;
+}
+
+class LicenseMap {
+  constructor() {
+    this.data = [];
+  }
+
+  static fromLicenseCheckerResult(licenseData) {
+    const map = new LicenseMap();
+    for (const [packageName, info] of Object.entries(licenseData)) {
+      if (info.path === ".") {
+        continue;
+      }
+      if (info.licenseFile === undefined) {
+        // TODO
+        console.log("FIXME", {info});
+        continue;
+      }
+      const licenseContent = fs.readFileSync(info.licenseFile).toString();
+      map.addPackage({
+        packageName,
+        licenseName: info.licenses,
+        licenseContent,
+      });
+    }
+    return map;
+  }
+
+  addPackage({ packageName, licenseName, licenseContent }) {
+    const data = this.data;
+    let entry = data.find(
+      (localEntry) =>
+        localEntry.licenseName === licenseName &&
+        localEntry.licenseContent === localEntry.licenseContent
+    );
+    if (!entry) {
+      entry = { licenseName, licenseContent, packageNames: [] };
+      data.push(entry);
+    }
+    entry.packageNames.push(packageName);
+  }
+
+  format() {
+    const buf = [];
+    const data = this.data;
+    data.sort((entry1, entry2) =>
+      strcmp(entry1.licenseName, entry2.licenseName)
+    );
+    for (const entry of data) {
+      entry.packageNames.sort(strcmp);
+      buf.push("-----------------------------------------");
+      buf.push("License notices for packages:");
+      for (const packageName of entry.packageNames) {
+        buf.push("  " + packageName);
+      }
+      buf.push("");
+      buf.push("=".repeat(entry.licenseName.length + 1));
+      buf.push(entry.licenseName);
+      buf.push("=".repeat(entry.licenseName.length + 1));
+      buf.push("");
+      buf.push(entry.licenseContent);
+      buf.push("");
+    }
+
+    return buf.join("\n");
+  }
+}
+
+licenseChecker.init(
+  {
+    start: ".",
+    production: true,
+    excludePackages: [
+      // TODO
+    ],
+  },
+  (inputError, result) => {
+    if (inputError) {
+      console.error(inputError);
+      process.exit(1);
+    }
+    console.log(LicenseMap.fromLicenseCheckerResult(result).format());
+  }
+);

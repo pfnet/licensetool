@@ -1,0 +1,23 @@
+{
+  "name": "licensetool",
+  "version": "0.0.0",
+  "main": "index.js",
+  "license": "MIT",
+  "private": true,
+  "dependencies": {
+    "license-checker-rseidelsohn": "^4.1.1",
+    "prettier": "^2.8.4"
+  },
+  "bin": {
+    "licensetool": "bin/licensetool"
+  },
+  "scripts": {
+    "format": "npm run prettier:fix && npm run lint",
+    "prettier": "npx prettier --check .",
+    "prettier:fix": "npm run prettier -- --write",
+    "lint": "npx eslint bin/*"
+  },
+  "devDependencies": {
+    "eslint": "^8.36.0"
+  }
+}
