@@ -13,7 +13,7 @@
   },
   "scripts": {
     "format": "npm run prettier:fix && npm run lint",
-    "prettier": "npx prettier --check .",
+    "prettier": "npx prettier --check bin/*",
     "prettier:fix": "npm run prettier -- --write",
     "lint": "npx eslint bin/*"
   },
