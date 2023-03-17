@@ -21,13 +21,16 @@ class LicenseMap {
   static fromLicenseCheckerResult(licenseData) {
     const map = new LicenseMap();
     for (const [packageName, info] of Object.entries(licenseData)) {
-      const licenseContent =
-        info.licenseFile === undefined
-          ? "(No text is attached)"
-          : fs.readFileSync(info.licenseFile).toString();
+      const isGuessed = info.licenses.endsWith("*");
+      const licenseName = isGuessed
+        ? info.licenses.slice(0, -1)
+        : info.licenses;
+      const licenseContent = info.licenseFile
+        ? fs.readFileSync(info.licenseFile).toString()
+        : "(No text is attached)";
       map.addPackage({
         packageName,
-        licenseName: info.licenses,
+        licenseName,
         licenseContent,
       });
     }
