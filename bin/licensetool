@@ -21,15 +21,10 @@ class LicenseMap {
   static fromLicenseCheckerResult(licenseData) {
     const map = new LicenseMap();
     for (const [packageName, info] of Object.entries(licenseData)) {
-      if (info.path === ".") {
-        continue;
-      }
-      if (info.licenseFile === undefined) {
-        // TODO
-        console.log("FIXME", {info});
-        continue;
-      }
-      const licenseContent = fs.readFileSync(info.licenseFile).toString();
+      const licenseContent =
+        info.licenseFile === undefined
+          ? "(No text is attached)"
+          : fs.readFileSync(info.licenseFile).toString();
       map.addPackage({
         packageName,
         licenseName: info.licenses,
@@ -83,9 +78,7 @@ licenseChecker.init(
   {
     start: ".",
     production: true,
-    excludePackages: [
-      // TODO
-    ],
+    excludePrivatePackages: true,
   },
   (inputError, result) => {
     if (inputError) {
