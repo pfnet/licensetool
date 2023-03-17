@@ -44,7 +44,7 @@ class LicenseMap {
     let entry = data.find(
       (localEntry) =>
         localEntry.licenseName === licenseName &&
-        localEntry.licenseContent === localEntry.licenseContent
+        localEntry.licenseContent === licenseContent
     );
     if (!entry) {
       entry = { licenseName, licenseContent, packageNames: [] };
