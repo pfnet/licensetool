@@ -5,7 +5,9 @@
   "license": "MIT",
   "private": true,
   "dependencies": {
-    "license-checker-rseidelsohn": "^4.1.1"
+    "license-checker-rseidelsohn": "^4.1.1",
+    "spdx-expression-parse": "^3.0.1",
+    "spdx-license-list": "^6.6.0"
   },
   "bin": {
     "licensetool": "bin/licensetool"

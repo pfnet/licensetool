@@ -1,7 +1,10 @@
 #!/usr/bin/env node
 
 const fs = require("fs");
+const util = require("util");
 const licenseChecker = require("license-checker-rseidelsohn");
+const spdxExpressionParse = require("spdx-expression-parse");
+const spdxLicenseList = require("spdx-license-list");
 
 function strcmp(s1, s2) {
   if (s1 < s2) {
@@ -13,28 +16,107 @@ function strcmp(s1, s2) {
   return 1;
 }
 
+class PackageProcessError extends Error {
+  constructor({ message, detail }) {
+    super();
+    this.message = message;
+    this.detail = detail;
+  }
+}
+
 class LicenseMap {
   constructor() {
     this.data = [];
   }
 
-  static fromLicenseCheckerResult(licenseData) {
+  static fromLicenseCheckerResult(licenseData, { onsuccess, onerror }) {
     const map = new LicenseMap();
+    const errors = [];
     for (const [packageName, info] of Object.entries(licenseData)) {
-      const isGuessed = info.licenses.endsWith("*");
-      const licenseName = isGuessed
-        ? info.licenses.slice(0, -1)
-        : info.licenses;
-      const licenseContent = info.licenseFile
-        ? fs.readFileSync(info.licenseFile).toString()
-        : "(No text is attached)";
-      map.addPackage({
-        packageName,
-        licenseName,
-        licenseContent,
+      try {
+        map.#addPackageByLicenseCheckerResult({ packageName, info });
+      } catch (e) {
+        if (e instanceof PackageProcessError) {
+          errors.push(e);
+        } else {
+          throw e;
+        }
+      }
+    }
+    if (errors.length > 0) {
+      onerror(errors);
+    } else {
+      onsuccess(map);
+    }
+  }
+
+  #addPackageByLicenseCheckerResult({ packageName, info }) {
+    const isGuessed = info.licenses.endsWith("*");
+    if (isGuessed) {
+      throw new PackageProcessError({
+        message:
+          'License information is only guessed by license-checker-rseidelsohn, which may not be accurate. You need to specify the license manually.',
+        detail: {
+          packageName,
+          licenseInfo: info,
+        },
       });
     }
-    return map;
+    const licensesParsed = (() => {
+      try {
+        return spdxExpressionParse(info.licenses);
+      } catch (e) {
+        throw new PackageProcessError({
+          message: "Non-standard SPDX license expression. Check `licenseInfo.licenses`.",
+          detail: {
+            packageName,
+            licenseInfo: info,
+          },
+        });
+      }
+    })();
+    if (licensesParsed.license === undefined) {
+      throw new PackageProcessError({
+        message:
+          "License is composite and cannot be resolved automatically. You need to specify the license manually.",
+        detail: {
+          packageName,
+          licenseInfo: info,
+          licenses: licensesParsed,
+        },
+      });
+    }
+    const licenseName = info.licenses;
+    const licenseContent = (() => {
+      // Retrieve the license file path. If it's a README file, we don't use it.
+      const licenseFile =
+        info.licenseFile === undefined
+          ? undefined
+          : /[^/]*README[^/]*$/.test(info.licenseFile)
+          ? undefined
+          : info.licenseFile;
+      // License file content, if any.
+      if (licenseFile !== undefined) {
+        return fs.readFileSync(info.licenseFile).toString();
+      }
+      // Fall back to spdx-license-list.
+      if (spdxLicenseList[licenseName] !== undefined) {
+        return spdxLicenseList[licenseName];
+      }
+      throw new PackageProcessError({
+        message:
+          "License text could not retrieved. You may need to specify the license manually.",
+        detail: {
+          packageName,
+          licenseInfo: info,
+        },
+      });
+    })();
+    this.addPackage({
+      packageName,
+      licenseName,
+      licenseContent,
+    });
   }
 
   addPackage({ packageName, licenseName, licenseContent }) {
@@ -88,6 +170,24 @@ licenseChecker.init(
       console.error(inputError);
       process.exit(1);
     }
-    console.log(LicenseMap.fromLicenseCheckerResult(result).format());
+    LicenseMap.fromLicenseCheckerResult(result, {
+      onsuccess: (map) => {
+        console.log(map.format());
+      },
+      onerror: (errors) => {
+        console.error(`${errors.length} errors are found.`);
+        for (const error of errors) {
+          console.error(
+            util.inspect(
+              {
+                error: error.message,
+                detail: error.detail,
+              },
+              { depth: null, colors: true }
+            )
+          );
+        }
+      },
+    });
   }
 );
