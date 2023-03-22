@@ -126,7 +126,7 @@ class LicenseMap {
           ? undefined
           : info.licenseFile === undefined
           ? undefined
-          : /[^/]*README[^/]*$/.test(info.licenseFile)
+          : new RegExp("[^/]*readme[^/]*$", "i").test(info.licenseFile)
           ? undefined
           : info.licenseFile;
       // License file content, if any.
