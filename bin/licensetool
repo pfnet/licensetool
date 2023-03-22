@@ -1,10 +1,27 @@
 #!/usr/bin/env node
 
 const fs = require("fs");
+const path = require("path");
 const util = require("util");
+const { strict: assert } = require("node:assert");
+
 const licenseChecker = require("license-checker-rseidelsohn");
 const spdxExpressionParse = require("spdx-expression-parse");
-const spdxLicenseList = require("spdx-license-list");
+const spdxLicenseList = require("spdx-license-list/full");
+
+function parseArgs() {
+  // TODO: Use node:util.parseArgs
+  // Currently only a limited syntax is accepted: "format --config <path>"
+  const argv = process.argv;
+  assert(argv.length === 5);
+  assert(argv[2] === "format");
+  assert(argv[3] === "--config");
+  const configPath = argv[4];
+  return {
+    action: "format",
+    config: configPath,
+  };
+}
 
 function strcmp(s1, s2) {
   if (s1 < s2) {
@@ -15,6 +32,10 @@ function strcmp(s1, s2) {
   }
   return 1;
 }
+
+const parsedArgs = parseArgs();
+assert(parsedArgs.action === "format");
+const config = require(path.resolve(parsedArgs.config));
 
 class PackageProcessError extends Error {
   constructor({ message, detail }) {
@@ -33,8 +54,9 @@ class LicenseMap {
     const map = new LicenseMap();
     const errors = [];
     for (const [packageName, info] of Object.entries(licenseData)) {
+      const packageConfig = config.packages[packageName] ?? {};
       try {
-        map.#addPackageByLicenseCheckerResult({ packageName, info });
+        map.#addPackage(packageName, packageConfig, info);
       } catch (e) {
         if (e instanceof PackageProcessError) {
           errors.push(e);
@@ -50,47 +72,59 @@ class LicenseMap {
     }
   }
 
-  #addPackageByLicenseCheckerResult({ packageName, info }) {
-    const isGuessed = info.licenses.endsWith("*");
-    if (isGuessed) {
-      throw new PackageProcessError({
-        message:
-          'License information is only guessed by license-checker-rseidelsohn, which may not be accurate. You need to specify the license manually.',
-        detail: {
-          packageName,
-          licenseInfo: info,
-        },
-      });
+  #addPackage(packageName, packageConfig, info) {
+    if (packageConfig.omit) {
+      return;
     }
-    const licensesParsed = (() => {
-      try {
-        return spdxExpressionParse(info.licenses);
-      } catch (e) {
-        throw new PackageProcessError({
-          message: "Non-standard SPDX license expression. Check `licenseInfo.licenses`.",
-          detail: {
-            packageName,
-            licenseInfo: info,
-          },
-        });
+
+    // Resolve license ID
+    const [licenseId, isLicenseIdGivenInConfig] = (() => {
+      if (packageConfig.licenseId) {
+        return [packageConfig.licenseId, true];
       }
+      return [info.licenses, false];
     })();
-    if (licensesParsed.license === undefined) {
+
+    // Omit public domain packages
+    if (licenseId === "Public Domain") {
+      return;
+    }
+
+    const spdxLicenseMetadata = spdxLicenseList[licenseId];
+
+    // Retrieve license name
+    // Note: License IDs "guessed" by license-checker-rseidelsohn (designated by *, e.g. "MIT*") are intentionally made errors.
+    const licenseName = (() => {
+      if (packageConfig.licenseName) {
+        return packageConfig.licenseName;
+      }
+      if (spdxLicenseMetadata && spdxLicenseMetadata.name) {
+        return spdxLicenseMetadata.name;
+      }
       throw new PackageProcessError({
-        message:
-          "License is composite and cannot be resolved automatically. You need to specify the license manually.",
+        message: "Unable to determine license name.",
         detail: {
           packageName,
+          licenseId,
           licenseInfo: info,
-          licenses: licensesParsed,
+          packageConfig,
         },
       });
-    }
-    const licenseName = info.licenses;
+    })();
+
+    // Resolve license text
     const licenseContent = (() => {
-      // Retrieve the license file path. If it's a README file, we don't use it.
+      if (packageConfig.licenseContent) {
+        return packageConfig.licenseContent;
+      }
+      // Retrieve the license file path.
+      // Use info.licenseFile only when:
+      // - not explicitly invalidated in config (with licenseFile: null)
+      // - it's not a README file
       const licenseFile =
-        info.licenseFile === undefined
+        packageConfig.licenseFile === null
+          ? undefined
+          : info.licenseFile === undefined
           ? undefined
           : /[^/]*README[^/]*$/.test(info.licenseFile)
           ? undefined
@@ -100,8 +134,8 @@ class LicenseMap {
         return fs.readFileSync(info.licenseFile).toString();
       }
       // Fall back to spdx-license-list.
-      if (spdxLicenseList[licenseName] !== undefined) {
-        return spdxLicenseList[licenseName];
+      if (spdxLicenseMetadata.licenseText) {
+        return spdxLicenseMetadata.licenseText;
       }
       throw new PackageProcessError({
         message:
@@ -109,17 +143,12 @@ class LicenseMap {
         detail: {
           packageName,
           licenseInfo: info,
+          packageConfig,
         },
       });
     })();
-    this.addPackage({
-      packageName,
-      licenseName,
-      licenseContent,
-    });
-  }
 
-  addPackage({ packageName, licenseName, licenseContent }) {
+    // Add to package entries
     const data = this.data;
     let entry = data.find(
       (localEntry) =>
