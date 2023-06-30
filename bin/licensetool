@@ -180,10 +180,11 @@ class LicenseMap {
       }
       buf.push("");
       buf.push("=".repeat(entry.licenseName.length + 1));
+      buf.push(entry.licenseName);
       if (entry.copyright) {
+        buf.push("");
         buf.push(entry.copyright);
       }
-      buf.push(entry.licenseName);
       buf.push("=".repeat(entry.licenseName.length + 1));
       buf.push("");
       buf.push(entry.licenseContent);
