@@ -112,6 +112,8 @@ class LicenseMap {
       });
     })();
 
+    const copyright = packageConfig.copyright;
+
     // Resolve license text
     const licenseContent = (() => {
       if (packageConfig.licenseContent) {
@@ -153,10 +155,11 @@ class LicenseMap {
     let entry = data.find(
       (localEntry) =>
         localEntry.licenseName === licenseName &&
-        localEntry.licenseContent === licenseContent
+        localEntry.licenseContent === licenseContent &&
+        localEntry.copyright === copyright
     );
     if (!entry) {
-      entry = { licenseName, licenseContent, packageNames: [] };
+      entry = { licenseName, licenseContent, packageNames: [], copyright };
       data.push(entry);
     }
     entry.packageNames.push(packageName);
@@ -178,6 +181,10 @@ class LicenseMap {
       buf.push("");
       buf.push("=".repeat(entry.licenseName.length + 1));
       buf.push(entry.licenseName);
+      if (entry.copyright) {
+        buf.push("");
+        buf.push(entry.copyright);
+      }
       buf.push("=".repeat(entry.licenseName.length + 1));
       buf.push("");
       buf.push(entry.licenseContent);
