@@ -8,10 +8,12 @@
     "licensetool": "bin/licensetool"
   },
   "scripts": {
-    "format": "npm run prettier:fix && npm run lint",
     "prettier": "npx prettier --check bin/*",
     "prettier:fix": "npm run prettier -- --write",
-    "lint": "npx eslint bin/*"
+    "lint": "run-p lint:*",
+    "lint:eslint": "npx eslint --max-warnings 0 bin/*",
+    "lint:prettier": "npx prettier --check bin/*",
+    "format": "npm run prettier -- --write"
   },
   "dependencies": {
     "license-checker-rseidelsohn": "^4.2.7",
@@ -20,6 +22,7 @@
   },
   "devDependencies": {
     "eslint": "^8.49.0",
+    "npm-run-all": "^4.1.5",
     "prettier": "^3.0.3"
   }
 }
