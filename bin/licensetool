@@ -1,24 +1,24 @@
 #!/usr/bin/env node
 
-const fs = require("fs");
-const path = require("path");
-const util = require("util");
-const { strict: assert } = require("node:assert");
+const fs = require('fs');
+const path = require('path');
+const util = require('util');
+const { strict: assert } = require('node:assert');
 
-const licenseChecker = require("license-checker-rseidelsohn");
-const spdxExpressionParse = require("spdx-expression-parse");
-const spdxLicenseList = require("spdx-license-list/full");
+const licenseChecker = require('license-checker-rseidelsohn');
+const spdxExpressionParse = require('spdx-expression-parse');
+const spdxLicenseList = require('spdx-license-list/full');
 
 function parseArgs() {
   // TODO: Use node:util.parseArgs
   // Currently only a limited syntax is accepted: "format --config <path>"
   const argv = process.argv;
   assert(argv.length === 5);
-  assert(argv[2] === "format");
-  assert(argv[3] === "--config");
+  assert(argv[2] === 'format');
+  assert(argv[3] === '--config');
   const configPath = argv[4];
   return {
-    action: "format",
+    action: 'format',
     config: configPath,
   };
 }
@@ -34,7 +34,7 @@ function strcmp(s1, s2) {
 }
 
 const parsedArgs = parseArgs();
-assert(parsedArgs.action === "format");
+assert(parsedArgs.action === 'format');
 const config = require(path.resolve(parsedArgs.config));
 
 class PackageProcessError extends Error {
@@ -86,7 +86,7 @@ class LicenseMap {
     })();
 
     // Omit public domain packages
-    if (licenseId === "Public Domain") {
+    if (licenseId === 'Public Domain') {
       return;
     }
 
@@ -102,7 +102,7 @@ class LicenseMap {
         return spdxLicenseMetadata.name;
       }
       throw new PackageProcessError({
-        message: "Unable to determine license name.",
+        message: 'Unable to determine license name.',
         detail: {
           packageName,
           licenseId,
@@ -126,7 +126,7 @@ class LicenseMap {
           ? undefined
           : info.licenseFile === undefined
           ? undefined
-          : new RegExp("[^/]*readme[^/]*$", "i").test(info.licenseFile)
+          : new RegExp('[^/]*readme[^/]*$', 'i').test(info.licenseFile)
           ? undefined
           : info.licenseFile;
       // License file content, if any.
@@ -139,7 +139,7 @@ class LicenseMap {
       }
       throw new PackageProcessError({
         message:
-          "License text could not retrieved. You may need to specify the license manually.",
+          'License text could not retrieved. You may need to specify the license manually.',
         detail: {
           packageName,
           licenseInfo: info,
@@ -153,7 +153,7 @@ class LicenseMap {
     let entry = data.find(
       (localEntry) =>
         localEntry.licenseName === licenseName &&
-        localEntry.licenseContent === licenseContent
+        localEntry.licenseContent === licenseContent,
     );
     if (!entry) {
       entry = { licenseName, licenseContent, packageNames: [] };
@@ -166,31 +166,31 @@ class LicenseMap {
     const buf = [];
     const data = this.data;
     data.sort((entry1, entry2) =>
-      strcmp(entry1.licenseName, entry2.licenseName)
+      strcmp(entry1.licenseName, entry2.licenseName),
     );
     for (const entry of data) {
       entry.packageNames.sort(strcmp);
-      buf.push("-----------------------------------------");
-      buf.push("License notices for packages:");
+      buf.push('-----------------------------------------');
+      buf.push('License notices for packages:');
       for (const packageName of entry.packageNames) {
-        buf.push("  " + packageName);
+        buf.push('  ' + packageName);
       }
-      buf.push("");
-      buf.push("=".repeat(entry.licenseName.length + 1));
+      buf.push('');
+      buf.push('='.repeat(entry.licenseName.length + 1));
       buf.push(entry.licenseName);
-      buf.push("=".repeat(entry.licenseName.length + 1));
-      buf.push("");
+      buf.push('='.repeat(entry.licenseName.length + 1));
+      buf.push('');
       buf.push(entry.licenseContent);
-      buf.push("");
+      buf.push('');
     }
 
-    return buf.join("\n");
+    return buf.join('\n');
   }
 }
 
 licenseChecker.init(
   {
-    start: ".",
+    start: '.',
     production: true,
     excludePrivatePackages: true,
   },
@@ -212,11 +212,11 @@ licenseChecker.init(
                 error: error.message,
                 detail: error.detail,
               },
-              { depth: null, colors: true }
-            )
+              { depth: null, colors: true },
+            ),
           );
         }
       },
     });
-  }
+  },
 );
