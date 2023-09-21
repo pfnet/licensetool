@@ -138,8 +138,7 @@ class LicenseMap {
         return spdxLicenseMetadata.licenseText;
       }
       throw new PackageProcessError({
-        message:
-          'License text could not retrieved. You may need to specify the license manually.',
+        message: 'License text could not retrieved. You may need to specify the license manually.',
         detail: {
           packageName,
           licenseInfo: info,
@@ -152,8 +151,7 @@ class LicenseMap {
     const data = this.data;
     let entry = data.find(
       (localEntry) =>
-        localEntry.licenseName === licenseName &&
-        localEntry.licenseContent === licenseContent,
+        localEntry.licenseName === licenseName && localEntry.licenseContent === licenseContent,
     );
     if (!entry) {
       entry = { licenseName, licenseContent, packageNames: [] };
@@ -165,9 +163,7 @@ class LicenseMap {
   format() {
     const buf = [];
     const data = this.data;
-    data.sort((entry1, entry2) =>
-      strcmp(entry1.licenseName, entry2.licenseName),
-    );
+    data.sort((entry1, entry2) => strcmp(entry1.licenseName, entry2.licenseName));
     for (const entry of data) {
       entry.packageNames.sort(strcmp);
       buf.push('-----------------------------------------');
