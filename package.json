@@ -4,11 +4,6 @@
   "main": "index.js",
   "license": "MIT",
   "private": true,
-  "dependencies": {
-    "license-checker-rseidelsohn": "^4.1.1",
-    "spdx-expression-parse": "^3.0.1",
-    "spdx-license-list": "^6.6.0"
-  },
   "bin": {
     "licensetool": "bin/licensetool"
   },
@@ -18,8 +13,13 @@
     "prettier:fix": "npm run prettier -- --write",
     "lint": "npx eslint bin/*"
   },
+  "dependencies": {
+    "license-checker-rseidelsohn": "^4.2.7",
+    "spdx-expression-parse": "^3.0.1",
+    "spdx-license-list": "^6.7.0"
+  },
   "devDependencies": {
-    "eslint": "^8.36.0",
-    "prettier": "^2.8.4"
+    "eslint": "^8.49.0",
+    "prettier": "^3.0.3"
   }
 }
