@@ -3,6 +3,7 @@
 const fs = require('fs');
 const path = require('path');
 const util = require('util');
+const { stringify } = require('csv-stringify/sync');
 const { strict: assert } = require('node:assert');
 
 const licenseChecker = require('license-checker-rseidelsohn');
@@ -10,16 +11,27 @@ const spdxExpressionParse = require('spdx-expression-parse');
 const spdxLicenseList = require('spdx-license-list/full');
 
 function parseArgs() {
-  // TODO: Use node:util.parseArgs
   // Currently only a limited syntax is accepted: "format --config <path>"
   const argv = process.argv;
-  assert(argv.length === 5);
   assert(argv[2] === 'format');
-  assert(argv[3] === '--config');
-  const configPath = argv[4];
+  const parsed = util.parseArgs({
+    options: {
+      config: {
+        type: 'string',
+      },
+      output: {
+        type: 'string',
+        default: 'text',
+      },
+    },
+    allowPositionals: true,
+    strict: true,
+  });
+  assert(parsed.values.config !== undefined);
   return {
     action: 'format',
-    config: configPath,
+    config: parsed.values.config,
+    output: parsed.values.output,
   };
 }
 
@@ -160,12 +172,10 @@ class LicenseMap {
     entry.packageNames.push(packageName);
   }
 
-  format() {
+  #formatText() {
     const buf = [];
     const data = this.data;
-    data.sort((entry1, entry2) => strcmp(entry1.licenseName, entry2.licenseName));
     for (const entry of data) {
-      entry.packageNames.sort(strcmp);
       buf.push('-----------------------------------------');
       buf.push('License notices for packages:');
       for (const packageName of entry.packageNames) {
@@ -182,6 +192,26 @@ class LicenseMap {
 
     return buf.join('\n');
   }
+
+  #formatCsv() {
+    throw new Error('Not implemented');
+  }
+
+  format(output) {
+    // Sort
+    this.data.sort((entry1, entry2) => strcmp(entry1.licenseName, entry2.licenseName));
+    for (const entry of this.data) {
+      entry.packageNames.sort(strcmp);
+    }
+
+    if (output === 'text') {
+      return this.#formatText();
+    }
+    if (output === 'csv') {
+      return this.#formatCsv();
+    }
+    throw new Error(`Invalid output: ${output}`);
+  }
 }
 
 licenseChecker.init(
@@ -197,7 +227,7 @@ licenseChecker.init(
     }
     LicenseMap.fromLicenseCheckerResult(result, {
       onsuccess: (map) => {
-        console.log(map.format());
+        console.log(map.format(parsedArgs.output));
       },
       onerror: (errors) => {
         console.error(`${errors.length} errors are found.`);
