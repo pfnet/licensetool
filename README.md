@@ -12,7 +12,15 @@ $ npm install --save-dev github:pfnet/licensetool
 
 ```console
 $ npx licensetool format --config licensetool.json
-$ npx licensetool format --config licensetool.json --output csv # Output as csv
+$ npx licensetool format --config licensetool.json --output csv # or output as csv
+```
+
+When using the --output csv option, the generated CSV file will have the following format:
+
+```csv
+licenseName,packageName
+MIT License,package-a@1.0.0
+MIT License,package-b@1.0.0
 ```
 
 # `licensetool.json`

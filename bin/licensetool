@@ -194,7 +194,14 @@ class LicenseMap {
   }
 
   #formatCsv() {
-    throw new Error('Not implemented');
+    const data = this.data;
+    const rows = [];
+    for (const entry of data) {
+      for (const packageName of entry.packageNames) {
+        rows.push({ packageName, licenseName: entry.licenseName });
+      }
+    }
+    return stringify(rows, { header: true, columns: ['licenseName', 'packageName'] });
   }
 
   format(output) {
