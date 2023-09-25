@@ -6,7 +6,6 @@ const util = require('util');
 const { strict: assert } = require('node:assert');
 
 const licenseChecker = require('license-checker-rseidelsohn');
-const spdxExpressionParse = require('spdx-expression-parse');
 const spdxLicenseList = require('spdx-license-list/full');
 
 function parseArgs() {
