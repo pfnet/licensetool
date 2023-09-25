@@ -16,6 +16,7 @@
     "format": "npm run prettier -- --write"
   },
   "dependencies": {
+    "csv-stringify": "^6.4.2",
     "license-checker-rseidelsohn": "^4.2.7",
     "spdx-license-list": "^6.7.0"
   },
