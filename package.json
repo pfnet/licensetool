@@ -4,9 +4,7 @@
   "main": "index.js",
   "license": "MIT",
   "private": true,
-  "bin": {
-    "licensetool": "bin/licensetool"
-  },
+  "main": "licensetool.cjs",
   "scripts": {
     "prettier": "npx prettier --check bin/*",
     "prettier:fix": "npm run prettier -- --write",
