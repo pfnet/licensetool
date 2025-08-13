@@ -21,6 +21,10 @@ function parseArgs() {
         type: 'string',
         default: 'text',
       },
+      'hide-version': {
+        type: 'boolean',
+        default: false,
+      },
     },
     allowPositionals: true,
     strict: true,
@@ -30,6 +34,7 @@ function parseArgs() {
     action: 'format',
     config: parsed.values.config,
     output: parsed.values.output,
+    hideVersion: parsed.values['hide-version'],
   };
 }
 
@@ -60,13 +65,13 @@ class LicenseMap {
     this.data = [];
   }
 
-  static fromLicenseCheckerResult(licenseData, { onsuccess, onerror }) {
+  static fromLicenseCheckerResult(licenseData, { hideVersion, onsuccess, onerror }) {
     const map = new LicenseMap();
     const errors = [];
     for (const [packageName, info] of Object.entries(licenseData)) {
       const packageConfig = config.packages[packageName] ?? {};
       try {
-        map.#addPackage(packageName, packageConfig, info);
+        map.#addPackage(packageName, packageConfig, info, { hideVersion });
       } catch (e) {
         if (e instanceof PackageProcessError) {
           errors.push(e);
@@ -82,7 +87,7 @@ class LicenseMap {
     }
   }
 
-  #addPackage(packageName, packageConfig, info) {
+  #addPackage(packageName, packageConfig, info, { hideVersion }) {
     if (packageConfig.omit) {
       return;
     }
@@ -167,7 +172,11 @@ class LicenseMap {
       entry = { licenseName, licenseContent, packageNames: [] };
       data.push(entry);
     }
-    entry.packageNames.push(packageName);
+    if (hideVersion) {
+      entry.packageNames.push(info.name);
+    } else {
+      entry.packageNames.push(packageName);
+    }
   }
 
   #formatText() {
@@ -224,6 +233,7 @@ licenseChecker.init(
     start: '.',
     production: true,
     excludePrivatePackages: true,
+    customPath: path.join(__dirname, '../customFormat.json'),
   },
   (inputError, result) => {
     if (inputError) {
@@ -231,6 +241,7 @@ licenseChecker.init(
       process.exit(1);
     }
     LicenseMap.fromLicenseCheckerResult(result, {
+      hideVersion: parsedArgs.hideVersion,
       onsuccess: (map) => {
         console.log(map.format(parsedArgs.output));
       },

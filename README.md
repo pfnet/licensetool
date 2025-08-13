@@ -13,6 +13,7 @@ $ npm install --save-dev github:pfnet/licensetool
 ```console
 $ npx licensetool format --config licensetool.json
 $ npx licensetool format --config licensetool.json --output csv # or output as csv
+$ npx licensetool format --config licensetool.json --hide-version # hide package version in the output
 ```
 
 When using the --output csv option, the generated CSV file will have the following format:
