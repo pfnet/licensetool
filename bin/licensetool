@@ -140,10 +140,10 @@ class LicenseMap {
         packageConfig.licenseFile === null
           ? undefined
           : info.licenseFile === undefined
-          ? undefined
-          : new RegExp('[^/]*readme[^/]*$', 'i').test(info.licenseFile)
-          ? undefined
-          : info.licenseFile;
+            ? undefined
+            : new RegExp('[^/]*readme[^/]*$', 'i').test(info.licenseFile)
+              ? undefined
+              : info.licenseFile;
       // License file content, if any.
       if (licenseFile !== undefined) {
         return fs.readFileSync(info.licenseFile).toString();
