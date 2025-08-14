@@ -1,13 +1,16 @@
 #!/usr/bin/env node
 
-const fs = require('fs');
-const path = require('path');
-const util = require('util');
-const { stringify } = require('csv-stringify/sync');
-const { strict: assert } = require('node:assert');
+import fs from 'node:fs';
+import path from 'node:path';
+import util from 'node:util';
+import { stringify } from 'csv-stringify/sync';
+import { strict as assert } from 'node:assert';
 
-const licenseChecker = require('license-checker-rseidelsohn');
-const spdxLicenseList = require('spdx-license-list/full');
+import { init as licenseCheckerInit } from 'license-checker-rseidelsohn';
+import spdxLicenseList from 'spdx-license-list/full.js';
+
+import { createRequire } from 'node:module';
+const require = createRequire(import.meta.url);
 
 function parseArgs() {
   const argv = process.argv;
@@ -21,6 +24,10 @@ function parseArgs() {
         type: 'string',
         default: 'text',
       },
+      'hide-version': {
+        type: 'boolean',
+        default: false,
+      },
     },
     allowPositionals: true,
     strict: true,
@@ -30,6 +37,7 @@ function parseArgs() {
     action: 'format',
     config: parsed.values.config,
     output: parsed.values.output,
+    hideVersion: parsed.values['hide-version'],
   };
 }
 
@@ -60,13 +68,13 @@ class LicenseMap {
     this.data = [];
   }
 
-  static fromLicenseCheckerResult(licenseData, { onsuccess, onerror }) {
+  static fromLicenseCheckerResult(licenseData, { hideVersion, onsuccess, onerror }) {
     const map = new LicenseMap();
     const errors = [];
     for (const [packageName, info] of Object.entries(licenseData)) {
       const packageConfig = config.packages[packageName] ?? {};
       try {
-        map.#addPackage(packageName, packageConfig, info);
+        map.#addPackage(packageName, packageConfig, info, { hideVersion });
       } catch (e) {
         if (e instanceof PackageProcessError) {
           errors.push(e);
@@ -82,7 +90,7 @@ class LicenseMap {
     }
   }
 
-  #addPackage(packageName, packageConfig, info) {
+  #addPackage(packageName, packageConfig, info, { hideVersion }) {
     if (packageConfig.omit) {
       return;
     }
@@ -135,10 +143,10 @@ class LicenseMap {
         packageConfig.licenseFile === null
           ? undefined
           : info.licenseFile === undefined
-          ? undefined
-          : new RegExp('[^/]*readme[^/]*$', 'i').test(info.licenseFile)
-          ? undefined
-          : info.licenseFile;
+            ? undefined
+            : new RegExp('[^/]*readme[^/]*$', 'i').test(info.licenseFile)
+              ? undefined
+              : info.licenseFile;
       // License file content, if any.
       if (licenseFile !== undefined) {
         return fs.readFileSync(info.licenseFile).toString();
@@ -167,7 +175,11 @@ class LicenseMap {
       entry = { licenseName, licenseContent, packageNames: [] };
       data.push(entry);
     }
-    entry.packageNames.push(packageName);
+    if (hideVersion) {
+      entry.packageNames.push(info.name);
+    } else {
+      entry.packageNames.push(packageName);
+    }
   }
 
   #formatText() {
@@ -219,11 +231,12 @@ class LicenseMap {
   }
 }
 
-licenseChecker.init(
+licenseCheckerInit(
   {
     start: '.',
     production: true,
     excludePrivatePackages: true,
+    customPath: require.resolve('../customFormat.json'),
   },
   (inputError, result) => {
     if (inputError) {
@@ -231,6 +244,7 @@ licenseChecker.init(
       process.exit(1);
     }
     LicenseMap.fromLicenseCheckerResult(result, {
+      hideVersion: parsedArgs.hideVersion,
       onsuccess: (map) => {
         console.log(map.format(parsedArgs.output));
       },
