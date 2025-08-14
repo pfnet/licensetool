@@ -1,13 +1,16 @@
 #!/usr/bin/env node
 
-const fs = require('fs');
-const path = require('path');
-const util = require('util');
-const { stringify } = require('csv-stringify/sync');
-const { strict: assert } = require('node:assert');
+import fs from 'node:fs';
+import path from 'node:path';
+import util from 'node:util';
+import { stringify } from 'csv-stringify/sync';
+import { strict as assert } from 'node:assert';
 
-const licenseChecker = require('license-checker-rseidelsohn');
-const spdxLicenseList = require('spdx-license-list/full');
+import { init as licenseCheckerInit } from 'license-checker-rseidelsohn';
+import spdxLicenseList from 'spdx-license-list/full.js';
+
+import { createRequire } from 'node:module';
+const require = createRequire(import.meta.url);
 
 function parseArgs() {
   const argv = process.argv;
@@ -228,12 +231,12 @@ class LicenseMap {
   }
 }
 
-licenseChecker.init(
+licenseCheckerInit(
   {
     start: '.',
     production: true,
     excludePrivatePackages: true,
-    customPath: path.join(__dirname, '../customFormat.json'),
+    customPath: require.resolve('../customFormat.json'),
   },
   (inputError, result) => {
     if (inputError) {
